@@ -11,7 +11,7 @@
    <property name="build.dir" location="build"/>
    <property name="dist.dir"  location="dist"/>
 
-   <condition property="sage.lib.dir" value="/usr/local/lib/sagetv" else="C:/sagelibs">
+   <condition property="sage.lib.dir" value="/home/seans/git/sagetv/build/release/" else="C:/sagelibs">
       <os family="unix" />
    </condition>
    <property name="jetty.lib.dir" location="lib"/>
