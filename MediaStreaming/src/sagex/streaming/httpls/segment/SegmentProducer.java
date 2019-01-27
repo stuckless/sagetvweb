@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import org.mortbay.log.Log;
 
 import sagex.api.MediaFileAPI;
+import sagex.streaming.servlet.HTTPLiveStreamingPlaylistServlet;
 
 /**
  * Encapsulates the state of an HTTP Live Streaming stream and the SegmenterProcess that
@@ -85,6 +86,12 @@ public class SegmentProducer
         {
             Log.warn(t.getMessage(), t);
             this.state.reset();
+
+            Log.debug("SegmenterProducer: Next segment: reset");
+            // Get ready for next client.
+            HTTPLiveStreamingPlaylistServlet.deviceHeight = -1;
+            HTTPLiveStreamingPlaylistServlet.deviceWidth = -1;
+            HTTPLiveStreamingPlaylistServlet.deviceNetwork = "unknown";
         }
         finally
         {

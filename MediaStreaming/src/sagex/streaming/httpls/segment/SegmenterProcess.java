@@ -21,8 +21,10 @@ import org.mortbay.log.Log;
 
 import sagex.api.MediaFileAPI;
 import sagex.streaming.httpls.playlist.SegmentPlaylist;
+import sagex.streaming.httpls.playlist.VariantPlaylist;
 import sagex.streaming.io.SegmentInputStream;
 import sagex.streaming.io.StreamGobbler;
+import sagex.streaming.servlet.HTTPLiveStreamingPlaylistServlet;
 
 public class SegmenterProcess implements UncaughtExceptionHandler
 {
@@ -149,7 +151,7 @@ public class SegmenterProcess implements UncaughtExceptionHandler
         interrupt(stderrSegmenterGobbler);
         interrupt(stdoutTranscoderGobbler);
         interrupt(stderrTranscoderGobbler);
-
+        
         if (transcoderProcess != null)
         {
             try
@@ -368,9 +370,15 @@ public class SegmenterProcess implements UncaughtExceptionHandler
 
     private ProcessBuilder getTranscodeProcessBuilder(File inputFile, String userAgent, String quality, double startTime)
     {
-//        Object mediaFile = MediaFileAPI.GetMediaFileForFilePath(inputFile);
-//        String aspect = MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Video.Aspect");
-//        String framerate = MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Video.FPS");
+    	try{
+        Object mediaFile = MediaFileAPI.GetMediaFileForFilePath(inputFile);
+        String height = MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Video.Height");
+        String width = MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Video.Width");
+        
+        Log.info("Dimension: " + height + " X " + width);
+    	} catch (Exception ex){
+    		Log.warn("Exception: " + ex.getMessage());
+    	}
 //        Integer numAudioStreams = Integer.parseInt(MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Audio.NumStreams"));
 //
 //        Log.debug("numAudioStreams " + numAudioStreams);
@@ -390,48 +398,79 @@ public class SegmenterProcess implements UncaughtExceptionHandler
         if (userAgent.contains("iPad") ||
                  userAgent.matches("Apple Mac OS X .* CoreMedia .*") || // Mac desktop Safari video element
                  userAgent.matches("QuickTime.*") || // Windows desktop Safari video element
-                 userAgent.matches(".*AppleWebKit.* Version.* Safari.*")) // Desktop Safari browser
-        {
-            // 16:9
-            String[] s1 = {"960x720", "1792k", "1940k", "29.97", "48k", "44100", "90"};
-            String[] s2 = {"960x720", "1192k", "1340k", "29.97", "48k", "44100", "90"};
-            String[] s3 = {"480x320", "792k",  "940k", "29.97", "48k", "44100", "90"};
-            String[] s4 = {"480x320", "592k",  "740k", "29.97", "48k", "44100", "90"};
-            String[] s5 = {"480x320", "392k",  "540k", "29.97", "48k", "44100", "60"};
-            String[] s6 = {"480x320", "192k",  "340k", "15.0", "48k", "44100", "45"};
-            String[] s7 = {"480x320", "102k",  "250k", "10.0", "48k", "44100", "30"};
-            //String[] s8 = {"480x320", "",  "", "", "40k", "44100", ""}; // Audio only stream...
-
-            qualityMap = new HashMap<String, String[]>();
-            qualityMap.put("1840", s1);
-            qualityMap.put("1240", s2);
-            qualityMap.put("840", s3);
-            qualityMap.put("640", s4);
-            qualityMap.put("440", s5);
-            qualityMap.put("240", s6);
-            qualityMap.put("150", s7);
-            //qualityMap.put("0", s8);
+                 userAgent.matches(".*AppleWebKit.* Version.* Safari.*")) { // Desktop Safari browser
+	            // 16:9
+	            String[] s1 = {"960x720", "1776k", "29.97", "64k", "44100", "90"};
+	            String[] s2 = {"960x720", "1176k", "29.97", "64k", "44100", "90"};
+	            String[] s3 = {"480x320", "776k", "29.97", "64k", "44100", "90"};
+	            //String[] s4 = {"480x320", "576k", "29.97", "64k", "44100", "90"};
+	            String[] s5 = {"480x320", "376k", "29.97", "64k", "44100", "60"};
+	            String[] s6 = {"480x320", "176k", "15.0", "64k", "44100", "45"};
+	            String[] s7 = {"480x320", "86k",  "10.0", "64k", "44100", "30"};
+	            //String[] s8 = {"480x320", "",  "", "40k", "44100", ""}; // Audio only stream...
+	
+	            qualityMap = new HashMap<String, String[]>();
+	            for (String bitrate : VariantPlaylist.variantPlaylistBitrates()){
+	            	switch (Integer.parseInt(bitrate)){
+		            	case 150:
+				            qualityMap.put("150", s7);
+		            		break;
+		            	case 240:
+				            qualityMap.put("240", s6);
+		            		break;
+		            	case 440:
+				            qualityMap.put("440", s5);
+		            		break;
+		            	case 840:
+				            qualityMap.put("840", s3);
+		            		break;
+		            	case 1240:
+				            qualityMap.put("1240", s2);
+		            		break;
+		            	case 1840:
+				            qualityMap.put("1840", s1);
+		            		break;
+	            	}
+	            }
+	            //qualityMap.put("640", s4);
+	            //qualityMap.put("0", s8);
         }
         else { // No longer denies the others
                 // 16:9
-                String[] s1 = {"640x360", "1792k", "1940k", "29.97", "48k", "44100", "90"};
-                String[] s2 = {"640x360", "1192k", "1340k", "29.97", "48k", "44100", "90"};
-                String[] s3 = {"480x272", "792k", "940k", "29.97", "48k", "44100", "90"};
-                String[] s4 = {"480x272", "592k", "740k", "29.97", "48k", "44100", "90"};
-                String[] s5 = {"480x272", "392k", "540k", "29.97", "48k", "44100", "60"};
-                String[] s6 = {"480x272", "192k", "340k", "15.0", "48k", "44100", "45"};
-                String[] s7 = {"480x272", "102k", "250k", "10.0", "48k", "44100", "30"};
-                //String[] s8 = {"480x320", "",  "", "", "40k", "44100", ""};  // Audio only stream...
+                String[] s1 = {"480x320", "1776k", "29.97", "64k", "44100", "90"};
+                String[] s2 = {"480x320", "1176k", "29.97", "64k", "44100", "90"};
+                String[] s3 = {"480x320", "776k", "29.97", "64k", "44100", "90"};
+                //String[] s4 = {"480x320", "576k", "29.97", "64k", "44100", "90"};
+                String[] s5 = {"480x320", "376k", "29.97", "64k", "44100", "60"};
+                String[] s6 = {"480x320", "176k", "15.0", "64k", "44100", "45"};
+                String[] s7 = {"480x320", "86k", "10.0", "64k", "44100", "30"};
+                //String[] s8 = {"480x320", "",  "", "40k", "44100", ""};  // Audio only stream...
 
                 qualityMap = new HashMap<String, String[]>();
-                qualityMap.put("1840", s1);
-                qualityMap.put("1240", s2);
-                qualityMap.put("840", s3);
-                qualityMap.put("640", s4);
-                qualityMap.put("440", s5);
-                qualityMap.put("240", s6);
-                qualityMap.put("150", s7);
-                //qualityMap.put("0", s8);
+	            for (String bitrate : VariantPlaylist.variantPlaylistBitrates()){
+	            	switch (Integer.parseInt(bitrate)){
+		            	case 150:
+				            qualityMap.put("150", s7);
+		            		break;
+		            	case 240:
+				            qualityMap.put("240", s6);
+		            		break;
+		            	case 440:
+				            qualityMap.put("440", s5);
+		            		break;
+		            	case 840:
+				            qualityMap.put("840", s3);
+		            		break;
+		            	case 1240:
+				            qualityMap.put("1240", s2);
+		            		break;
+		            	case 1840:
+				            qualityMap.put("1840", s1);
+		            		break;
+	            	}
+	            }
+	            //qualityMap.put("640", s4);
+	            //qualityMap.put("0", s8);
             }
         String[] currentQuality = qualityMap.get(quality);
         
@@ -460,15 +499,17 @@ public class SegmenterProcess implements UncaughtExceptionHandler
         List<String> params = new ArrayList<String>();
         
         Object mediaFile = MediaFileAPI.GetMediaFileForFilePath(inputFile);
+        String framerate = MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Video.FPS");
         String aspect = MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Video.Aspect");
-        if ((aspect == null) || (aspect.trim().length() == 0))
+        String videoWidth = MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Video.Width");
+        String videoHeight = MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Video.Height");
+        String resolution = currentQuality[0];
+
+        if (aspect == null || aspect.isEmpty())
         {
             aspect = null;
-            String videoWidth = MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Video.Width");
-            String videoHeight = MediaFileAPI.GetMediaFileMetadata(mediaFile, "Format.Video.Height");
 
-            if ((videoWidth != null) && (videoWidth.trim().length() != 0) &&
-                (videoHeight != null) && (videoHeight.trim().length() != 0))
+            if (videoWidth != null && !videoWidth.isEmpty() && videoHeight != null && !videoHeight.isEmpty())
             {
                 try
                 {
@@ -484,6 +525,43 @@ public class SegmenterProcess implements UncaughtExceptionHandler
             }
 
         }
+        
+        if (!HTTPLiveStreamingPlaylistServlet.deviceNetwork.equalsIgnoreCase("cell")){
+        	try{
+	        	String[] parts = resolution.split("x");
+	        	int suggestedWidth = Integer.parseInt(parts[1]);
+	        	int suggestedHeight = Integer.parseInt(parts[0]);
+	            Log.debug("SegmenterProcess: suggested resolution " + suggestedHeight + "x" + suggestedWidth);
+	            int width = Integer.parseInt(videoWidth);
+	            int height = Integer.parseInt(videoHeight);
+	            Log.debug("SegmenterProcess: video resolution " + width + "x" + height);
+	            Log.debug("SegmenterProcess: device resolution " + HTTPLiveStreamingPlaylistServlet.deviceWidth + "x" + 
+	            				HTTPLiveStreamingPlaylistServlet.deviceHeight);
+		        if (HTTPLiveStreamingPlaylistServlet.deviceHeight > 0 && HTTPLiveStreamingPlaylistServlet.deviceWidth > 0){
+		        	if (Math.max(width, height) <= Math.max(HTTPLiveStreamingPlaylistServlet.deviceHeight, 
+		        			HTTPLiveStreamingPlaylistServlet.deviceWidth)){ // video constrained
+		        		if (HTTPLiveStreamingPlaylistServlet.deviceNetwork.equalsIgnoreCase("wifi") || Math.max(width, height) <= 720)
+		        			resolution = videoWidth + "x" + videoHeight;
+		        		else if (Math.max(width, height)/2 > Math.max(suggestedWidth, suggestedHeight))
+		        			resolution = width/2 + "x" + height/2;
+		        	}
+		        	else{ // device constrained
+		        		if (HTTPLiveStreamingPlaylistServlet.deviceNetwork.equalsIgnoreCase("wifi") || 
+		        				Math.max(HTTPLiveStreamingPlaylistServlet.deviceHeight, HTTPLiveStreamingPlaylistServlet.deviceWidth) <= 720)
+		        			resolution = HTTPLiveStreamingPlaylistServlet.deviceWidth + "x" + HTTPLiveStreamingPlaylistServlet.deviceHeight;
+		        		else if (Math.max(HTTPLiveStreamingPlaylistServlet.deviceHeight, HTTPLiveStreamingPlaylistServlet.deviceWidth)/2 > 
+		        		Math.max(suggestedWidth, suggestedHeight))
+		        			resolution = HTTPLiveStreamingPlaylistServlet.deviceWidth/2 + "x" + 
+		        						HTTPLiveStreamingPlaylistServlet.deviceHeight/2;
+		        	}
+		        }
+        	} catch(Exception e){
+        		Log.debug("SegmenterProcess error: " + e.getMessage());
+        	}
+        }
+        
+        Log.debug("SegmenterProcess: selected resolution " + resolution);
+        
         isCurrentlyRecording = MediaFileAPI.IsFileCurrentlyRecording(mediaFile);
         
         String cmd = transcoderFile.getAbsolutePath();
@@ -494,10 +572,10 @@ public class SegmenterProcess implements UncaughtExceptionHandler
             params.add("-activefile");
             params.add("-stdinctrl");
         }
-        params.add("-threads"); params.add(Integer.toString(Runtime.getRuntime().availableProcessors()));//"4",
+        params.add("-threads"); params.add(Integer.toString(Runtime.getRuntime().availableProcessors()));//"4", is 0 busted?
         params.add("-flags2"); params.add("+fast");
         params.add("-flags"); params.add("+loop");
-        params.add("-g"); params.add(currentQuality[6]);
+        params.add("-g"); params.add(currentQuality[5]);
         params.add("-keyint_min"); params.add("1");
         params.add("-bf"); params.add("0");
         params.add("-b_strategy"); params.add("0");
@@ -525,7 +603,7 @@ public class SegmenterProcess implements UncaughtExceptionHandler
 //            "-cropright", "0",
 //            "-croptop", "0",
 //            "-cropbottom", "0",
-        params.add("-s"); params.add(currentQuality[0]);
+        params.add("-s"); params.add(resolution);
         if (aspect != null)
         {
             params.add("-aspect"); params.add(aspect);
@@ -535,18 +613,22 @@ public class SegmenterProcess implements UncaughtExceptionHandler
         params.add("-async"); params.add("1");
         params.add("-vcodec"); params.add("libx264");
         params.add("-level"); params.add("30");
-        params.add("-bufsize"); params.add("4M"); //params.add("512k");
+        params.add("-bufsize"); params.add("2M"); // params.add("512k");
         params.add("-b"); params.add(currentQuality[1]);
-        params.add("-bt"); params.add(currentQuality[2]);
         params.add("-qmax"); params.add("48");
         params.add("-qmin"); params.add("2");
-        params.add("-r"); params.add(currentQuality[3]); // Could further adapt to 24/25/50 Hz
-        //params.add("29.97"); // 25
+        params.add("-r"); 
+        if (framerate != null && !framerate.isEmpty()){
+        	float rate = Float.parseFloat(framerate);
+        	if (rate < 40) params.add(framerate);
+        	else params.add(String.valueOf(rate/2.0f));
+        }
+        else params.add(currentQuality[2]); //params.add("29.97"); // 25
 //        "-acodec", "libmp3lame",
-        params.add("-vol"); params.add("1024");
+        params.add("-vol"); params.add("512"); // params.add("1024");
         params.add("-acodec"); params.add("libfaac");
-        params.add("-ab"); params.add(currentQuality[4]);
-        params.add("-ar"); params.add(currentQuality[5]);
+        params.add("-ab"); params.add(currentQuality[3]);
+        params.add("-ar"); params.add(currentQuality[4]);
         params.add("-ac"); params.add("2");
         params.add("-");
         

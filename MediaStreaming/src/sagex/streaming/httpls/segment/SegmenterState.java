@@ -2,9 +2,12 @@ package sagex.streaming.httpls.segment;
 
 import org.mortbay.log.Log;
 
+import sagex.streaming.servlet.HTTPLiveStreamingPlaylistServlet;
+
 public class SegmenterState
 {
-    private boolean isInitialState = true;
+    public static Object deviceNetwork;
+	private boolean isInitialState = true;
     private int segment = -1;
     private String quality;
 

@@ -14,7 +14,11 @@ import sagex.streaming.httpls.playlist.VariantPlaylist;
 @SuppressWarnings("serial")
 public class HTTPLiveStreamingPlaylistServlet extends SageServlet
 {
-    public HTTPLiveStreamingPlaylistServlet()
+	public static int deviceHeight = -1;
+	public static int deviceWidth = -1;
+	public static String deviceNetwork = "unknown";
+
+	public HTTPLiveStreamingPlaylistServlet()
     {
     }
 
@@ -70,8 +74,30 @@ public class HTTPLiveStreamingPlaylistServlet extends SageServlet
         resp.setHeader("Accept-Ranges", "none");
         
         String conversionId = req.getParameter("ConversionId");
-        String quality = req.getParameter("Quality");
-        
+        String quality = req.getParameter("Quality"); // cell <= 440, otherwise wifi
+        String height = req.getParameter("Height");
+        String width = req.getParameter("Width");
+
+        try{
+        	Log.info("HTTPLiveStreamingPlaylistServlet - working...");
+        	if (deviceNetwork.equalsIgnoreCase("unknown")){ // Initial request
+	            if (quality != null && !quality.isEmpty())
+	            	deviceNetwork = (Integer.parseInt(quality) <= 440 ? "cell" : "wifi");
+	            else deviceNetwork = "Other";
+	        	Log.debug("HTTPLiveStreamingPlaylistServlet - network: " + deviceNetwork);
+	        	Log.debug("HTTPLiveStreamingPlaylistServlet - dimension: " + height + "x" + width);
+	
+	            if (height != null && width != null && !height.isEmpty() && !width.isEmpty()){
+	            	deviceHeight = Math.min(Integer.parseInt(height), Integer.parseInt(width));
+	            	deviceWidth = Math.max(Integer.parseInt(height), Integer.parseInt(width));
+	            }
+	        	Log.debug("HTTPLiveStreamingPlaylistServlet - dimension2: " + deviceWidth + "x" + deviceHeight);
+        	}
+        } catch (Exception e){
+        	Log.info("HTTPLiveStreamingPlaylistServlet - error: " + e.getMessage());
+        }
+                
+        // Get some global variable from those or pass them along through many layers?
         String playlist = "";
         if (conversionId == null)
         {

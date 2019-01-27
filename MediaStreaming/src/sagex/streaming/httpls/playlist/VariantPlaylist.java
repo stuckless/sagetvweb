@@ -6,9 +6,13 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.mortbay.log.Log;
 
+import sagex.streaming.servlet.HTTPLiveStreamingPlaylistServlet;
+
 public class VariantPlaylist
 {
-    public static String[] VARIANT_PLAYLIST_BITRATES = {"150", "1240", "1840", "840", "640", "440", "240"};
+    public static String[] VARIANT_PLAYLIST_BITRATES_CELL = {"440", "840", "240", "150"};
+    public static String[] VARIANT_PLAYLIST_BITRATES_UNKNOWN = {"440", "840", "1240", "240", "150"};
+    public static String[] VARIANT_PLAYLIST_BITRATES_WIFI = {"840", "1240", "1840", "440"};
     private static final String LINE_TERM = "\r\n";
 
     private HttpServletRequest req;
@@ -31,9 +35,17 @@ public class VariantPlaylist
         this.playlist = createPlaylist();
     }
 
+    public static String[] variantPlaylistBitrates(){
+    	if (HTTPLiveStreamingPlaylistServlet.deviceNetwork.equalsIgnoreCase("cell"))
+    		return VARIANT_PLAYLIST_BITRATES_CELL;
+    	else if (HTTPLiveStreamingPlaylistServlet.deviceNetwork.equalsIgnoreCase("wifi"))
+    		return VARIANT_PLAYLIST_BITRATES_WIFI;
+    	else return VARIANT_PLAYLIST_BITRATES_UNKNOWN;
+    }
+    
     private boolean isValidBitrate(String defaultBitrate)
     {
-        for (String bitrate : VARIANT_PLAYLIST_BITRATES)
+        for (String bitrate : variantPlaylistBitrates())
         {
             if (bitrate.equals(defaultBitrate))
             {
@@ -60,7 +72,7 @@ public class VariantPlaylist
             sb.append(createPlaylistEntry(conversionId, defaultBitrate));
         }
 
-        for (String bitrate : VARIANT_PLAYLIST_BITRATES)
+        for (String bitrate : variantPlaylistBitrates())
         {
             if (!bitrate.equals(defaultBitrate))
             {
