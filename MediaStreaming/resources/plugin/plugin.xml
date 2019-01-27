@@ -92,13 +92,13 @@ Version 1.0.0
   <PluginType>Standard</PluginType>
   <Package>
     <PackageType>System</PackageType>
-    <Location>@@download-url-location@@/mediastreaming-war-file-@@plugin-impl-version@@.zip@@download-url-params@@</Location>
+    <Location>http://dl.bintray.com/opensagetv/sagetv-plugins/mediastreaming/@@plugin-impl-version@@/mediastreaming-war-file-@@plugin-impl-version@@.zip</Location>
     <MD5>@@war-file-checksum@@</MD5>
   </Package>
   <!-- context file must be installed after the war file -->
   <Package>
     <PackageType>System</PackageType>
-    <Location>@@download-url-location@@/mediastreaming-context-file-@@plugin-impl-version@@.zip@@download-url-params@@</Location>
+    <Location>http://dl.bintray.com/opensagetv/sagetv-plugins/mediastreaming/@@plugin-impl-version@@/mediastreaming-context-file-@@plugin-impl-version@@.zip</Location>
     <MD5>@@context-file-checksum@@</MD5>
   </Package>
   <ImplementationClass></ImplementationClass>
